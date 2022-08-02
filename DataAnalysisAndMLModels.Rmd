@@ -1,0 +1,178 @@
+---
+title: "AP_Project"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Libraries
+```{r, include=FALSE}
+library(knitr)
+library(tidyverse)
+library(tidymodels)
+library(kknn)
+library(ggplot2)
+```
+
+Data Loading
+```{r}
+data <- read_csv('./proposal/data/processed data.csv', show_col_types = FALSE)
+data
+```
+
+Features
+```{r}
+names(data)
+```
+
+Processing
+```{r}
+numeric_cols <- select_if(data, is.numeric)
+drops <- c("id", "index", "Date")
+numeric_cols <- numeric_cols[, !(names(numeric_cols) %in% drops)]
+
+data_long <- data %>%
+  pivot_longer(colnames(numeric_cols)) %>% 
+  as.data.frame()
+head(data_long)
+```
+
+# Distributions
+
+```{r}
+ggplot(data_long, aes(x = value)) +
+  geom_histogram(aes(y=..density..), binwidth = 1) + 
+  geom_density(col="#FF0000") +
+  geom_vline(aes(xintercept = mean(value)), col="#0096B7", linetype="dashed", size=0.75) +
+  facet_wrap(~ name, scales = "free") + 
+  labs(x="", y="Density", title="Quick Overview of the aspects",
+       subtitle="Histogram for each numeric feature, with density and mean line")
+```
+
+# Classification
+
+train-test
+```{r}
+train_test_split <- initial_split(data=data, prop=0.8)
+data_train <- train_test_split %>% training() 
+data_test  <- train_test_split %>% testing()
+
+data_test
+data_train
+```
+
+KNN
+```{r}
+knn_mod <- nearest_neighbor(mode="classification", neighbors=5) %>%
+  fit(as.factor(RECOMMENDATION) ~ SUBSTANCE + CLARITY + REVIEWER_CONFIDENCE + IMPACT, data_train)
+
+knn_mod
+```
+
+```{r}
+knn_pred <- knn_mod %>% predict(data_test) %>% bind_cols(data_test %>% select(RECOMMENDATION))
+
+knn_pred
+```
+
+```{r}
+knn_pred %>%
+  conf_mat(RECOMMENDATION, .pred_class) %>%
+  pluck(1) %>%
+  as_tibble() %>%
+  ggplot(aes(Prediction, Truth, alpha = n)) +
+  geom_tile(show.legend = FALSE) +
+  geom_text(aes(label = n), colour = "white", alpha = 1, size = 8)
+```
+
+```{r}
+knn_pred$tf <- if_else(knn_pred$RECOMMENDATION == knn_pred$.pred_class, 1, 0)
+
+sum(knn_pred$tf) / length(knn_pred$RECOMMENDATION)
+```
+
+
+
+Random Forest
+```{r}
+rf_mod <- rand_forest(mode="classification") %>%
+  fit(as.factor(RECOMMENDATION) ~ SUBSTANCE + CLARITY + REVIEWER_CONFIDENCE + IMPACT, data_train)
+
+rf_mod
+```
+
+```{r}
+rf_pred <- rf_mod %>% predict(data_test) %>% bind_cols(data_test %>% select(RECOMMENDATION))
+
+rf_pred
+```
+
+```{r}
+rf_pred %>%
+  conf_mat(RECOMMENDATION, .pred_class) %>%
+  pluck(1) %>%
+  as_tibble() %>%
+  ggplot(aes(Prediction, Truth, alpha = n)) +
+  geom_tile(show.legend = FALSE) +
+  geom_text(aes(label = n), colour = "white", alpha = 1, size = 8)
+```
+
+```{r}
+rf_pred$tf <- if_else(rf_pred$RECOMMENDATION == rf_pred$.pred_class, 1, 0)
+
+sum(rf_pred$tf) / length(rf_pred$RECOMMENDATION)
+```
+
+Neural Network
+```{r}
+nnet_mod <- mlp(mode="classification",
+                hidden_units = 13) %>%
+  fit(as.factor(RECOMMENDATION) ~ SUBSTANCE + CLARITY + REVIEWER_CONFIDENCE, data_train)
+
+nnet_mod
+```
+
+```{r}
+nnet_pred <- nnet_mod %>% predict(data_test) %>% bind_cols(data_test %>% select(RECOMMENDATION))
+
+nnet_pred
+```
+
+```{r}
+nnet_pred %>%
+  conf_mat(RECOMMENDATION, .pred_class) %>%
+  pluck(1) %>%
+  as_tibble() %>%
+  ggplot(aes(Prediction, Truth, alpha = n)) +
+  geom_tile(show.legend = FALSE) +
+  geom_text(aes(label = n), colour = "white", alpha = 1, size = 8)
+```
+
+```{r}
+nnet_pred$tf <- if_else(nnet_pred$RECOMMENDATION == nnet_pred$.pred_class, 1, 0)
+
+sum(nnet_pred$tf) / length(nnet_pred$RECOMMENDATION)
+```
+
+MSE
+```{r}
+mean((as.numeric(knn_pred$.pred_class) - as.numeric(knn_pred$RECOMMENDATION))^2)
+mean((as.numeric(rf_pred$.pred_class) - as.numeric(rf_pred$RECOMMENDATION))^2)
+mean((as.numeric(nnet_pred$.pred_class) - as.numeric(nnet_pred$RECOMMENDATION))^2)
+```
+
+```{r}
+rsq(knn_pred, truth = as.numeric(RECOMMENDATION), estimate = as.numeric(.pred_class))
+rsq(rf_pred, truth = as.numeric(RECOMMENDATION), estimate = as.numeric(.pred_class))
+rsq(nnet_pred, truth = as.numeric(RECOMMENDATION), estimate = as.numeric(.pred_class))
+```
+
+
+
+
+
+
+
+
