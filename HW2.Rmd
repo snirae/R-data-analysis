@@ -1,0 +1,202 @@
+---
+title: "HW2"
+output: html_document
+date: '2022-04-17'
+---
+
+# Homework 2
+
+# Snir Aharon Ezer - 322375783
+
+### Instructions
+
+1.  All assignments are individual!
+2.  This assignment should be uploaded as one html file (after knit) before 1/5/2022, 23:59.
+3.  Questions about the assignment should be asked using the Assignments forums.
+4.  Submit just the html file.
+5.  Write your name and id at the top of the file
+6.  The work includes 8 questions.
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+### MPG dataset
+
+```{r}
+data(mpg)
+```
+
+```{r}
+str(mpg)
+```
+
+```{r}
+print(mpg)
+```
+
+### Q1. Pick two categorical variables and make a visualization to visualize the relationship between the two variables. Along with your code and output, provide an interpretation of the visualization.(10)
+
+Histogram plot showing the amount of manual and automate cars for every manufacturer:
+
+```{r, eval=TRUE}
+ggplot(mpg, aes(x=manufacturer, fill=trans)) +
+  scale_fill_brewer(palette = "Spectral") + 
+  geom_bar(col="black", 
+           size=.1) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle=65, vjust=0.6),
+        plot.title = element_text(face = "bold")) +
+  labs(title="Manual And Automate Cars For Manufacturer", y="",
+       fill="transmission")
+```
+
+### Q2. Pick 3 numerical variables and 2 categorical variable and make a visualization of them and provide an interpretation with your answer.(10 points)
+
+```{r, eval=TRUE}
+
+# numerical: year, number of cylinders, engine displacement
+# categorical: manufacturer, class
+
+ggplot(mpg, aes(x=displ, y=cyl)) +
+  geom_point(aes(color=manufacturer),
+             alpha = 0.5) +
+  facet_grid(year ~ class) +
+  labs(title="Number of cylinders and engine displacemet for \nevery manufacturer and class in 1999 and 2008",
+       x="Engine Displacement", y="Number of Cylinders",
+       colour = "Manufacturer", 
+       shape = "Class")
+```
+
+### Q3. Pick 2 numerical variables and plot boxplot for the variables.(10 points)
+
+```{r, eval=TRUE}
+
+# cty - city miles per gallon, hwy - highway miles per gallon
+
+mpg$year <- as.character(mpg$year)
+ggplot(mpg, aes(x=year, y=cty)) +
+  geom_boxplot() +
+  labs(title="City Miles Per Gallon In Every Year",
+       x="Year",
+       y="City Miles Per Gallon")
+
+mpg$year <- as.integer(mpg$year)
+```
+
+### Q4. write a code to plot the following plot(10 points)
+
+for this question use data(mpg, package="ggplot2")
+
+
+```{r, eval=TRUE}
+
+data(mpg, package="ggplot2")
+ggplot(mpg, aes(class, cty)) +
+  geom_boxplot(varwidth=T, fill='plum') +
+  labs(title="Box plot",
+       subtitle="City Mileage grouped by Class of vehicle",
+       x="Class of Vehicle",
+       y="City Mileage",
+       caption="Source: mpg") 
+```
+
+### Q5. write a code to plot the following plot(10 points)
+
+for this question use data(mpg, package="ggplot2")
+
+```{r, eval=TRUE}
+
+ggplot(mpg, aes(manufacturer)) +
+  geom_bar(aes(fill=class), width = 0.5) + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6)) + 
+  labs(title="Histogram on Categorical Variable", 
+       subtitle="Manufacturer across Vehicle Classes")
+```
+
+### Q6. write a code to plot the following plot(10 points)
+
+for this question use mtcars DataSet.
+
+```{r}
+# Data Prep
+data("mtcars")  # load data
+mtcars$`car name` <- rownames(mtcars) # create new column for car names
+mtcars$mpg_z <- round((mtcars$mpg - mean(mtcars$mpg))/sd(mtcars$mpg), 2)  # compute normalized mpg
+mtcars$mpg_type <- ifelse(mtcars$mpg_z < 0, "below", "above")
+# above / below avg flag
+mtcars <- mtcars[order(mtcars$mpg_z), ]  # sort
+mtcars$`car name` <- factor(mtcars$`car name`, levels = mtcars$`car name`)  # convert to factor to retain sorted order in plot.
+```
+
+```{r, eval=TRUE}
+ggplot(mtcars, aes(x=mpg_z, y=`car name`,label=mpg_z)) + 
+  geom_bar(stat='identity', aes(fill=mpg_type), width=.5) +
+  labs(title= "Diverging Bars",
+       subtitle="Normalised mileage from 'mtcars'") +
+  scale_fill_manual(name="Mileage", 
+                    labels = c("Above Average", "Below Average"), 
+                    values = c("above"="green3",
+                               "below"="salmon"))
+```
+
+
+
+### accidents Dataset
+
+In this 2 Questions we will review traffic `accidents` dataset. The data includes records of traffic accidents in Edinburgh. The **goal** of this exercise is to visualize, and based on the visualization further understand the data you will be working with. For this assignment, you will need to have `dsbox` library installed. The link for the library can be found here: <https://github.com/rstudio-education/dsbox>
+
+```{r}
+# install.packages("devtools")
+# devtools::install_github("rstudio-education/dsbox")
+```
+
+```{r}
+library(dsbox)
+```
+
+#### Q7 Print how many records of accidents the `accidents` dataset contains.(10 points)
+
+```{r}
+data(accidents, package="dsbox")
+head(accidents)
+str(accidents)
+```
+
+```{r}
+records <- nrow(accidents)
+paste("The dataset contains", records, "records.")
+```
+
+#### Q8(30 points)
+
+In the two following chunks, create: 1. Histogram plot. 2. Density plot. The plots should show the number of accidents throughout the day, and have 3 different lines based on severity (hint: explore the `position` argument). All plots should include title, proper labels, and bins which are informative enough. The plots should have a color different than the default one.
+
+```{r}
+# Histogram plot
+
+ggplot(accidents, aes(time, , fill=severity)) +
+  geom_histogram(bins=20, binwidth=1500) +
+  theme_dark() +
+  theme(plot.title = element_text(face = "bold")) +
+  scale_fill_brewer(palette = "Set1") +
+  labs(title="Number of Accidents Throughout the Day",
+       x="Time of the Day",
+       y="Number of Accidents",
+       fill="Severity")
+```
+
+```{r}
+# Density plot
+
+ggplot(accidents, aes(x=time, group=severity, fill=severity)) +
+  geom_density(adjust=1.3, alpha=.6) +
+  theme_dark() +
+  theme(plot.title = element_text(face = "bold")) +
+  scale_fill_brewer(palette = "Set1") +
+  labs(title="Distribution of Accidents Throughout the Day",
+       x="Time of the Day",
+       y="Percentage",
+       fill="Severity")
+```
